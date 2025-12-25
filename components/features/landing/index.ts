@@ -1,0 +1,10 @@
+// Landing page components barrel export
+export { Hero } from './Hero';
+export { LandingNavbar } from './LandingNavbar';
+export { Features } from './Features';
+export { CodePreview } from './CodePreview';
+export { DashboardMockup } from './DashboardMockup';
+export { Statistics } from './Statistics';
+export { CallToAction } from './CallToAction';
+export { LandingFooter } from './LandingFooter';
+export { Pricing } from './Pricing';

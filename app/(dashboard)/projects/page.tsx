@@ -18,8 +18,9 @@ export default function ProjectsPage() {
             const data = await projectsService.fetchAll();
             setProjects(data);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'Failed to load projects');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to load projects');
         } finally {
             setLoading(false);
         }

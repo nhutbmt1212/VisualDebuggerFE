@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/auth.service';
-import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, Github, Globe } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { SocialButtons } from './SocialButtons';
 import Link from 'next/link';
 
@@ -24,8 +23,9 @@ export function LoginForm() {
         try {
             await authService.login({ email, password });
             router.push('/projects');
-        } catch (err: any) {
-            setError(err.message || 'Login failed. Please try again.');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -107,7 +107,7 @@ export function LoginForm() {
 
             <div className="mt-8 text-center">
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Don't have an account? <Link className="text-purple-600 dark:text-purple-400 font-bold hover:underline" href="/register">Sign Up</Link>
+                    Don&apos;t have an account? <Link className="text-purple-600 dark:text-purple-400 font-bold hover:underline" href="/register">Sign Up</Link>
                 </p>
             </div>
         </div>

@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/auth.service';
-import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { SocialButtons } from './SocialButtons';
 import Link from 'next/link';
@@ -25,8 +24,9 @@ export function RegisterForm() {
         try {
             await authService.register({ name, email, password });
             router.push('/projects');
-        } catch (err: any) {
-            setError(err.message || 'Registration failed. Please try again.');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Zap, Clock, Shield } from 'lucide-react';
+import { Zap, Clock } from 'lucide-react';
 
 export const AuthHero: React.FC = () => {
     return (
@@ -12,7 +12,7 @@ export const AuthHero: React.FC = () => {
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-400">before they ship.</span>
                 </h1>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-md">
-                    Visual Debugger gives you x-ray vision into your application's state. Join thousands of developers streamlining their workflow today.
+                    Visual Debugger gives you x-ray vision into your application&apos;s state. Join thousands of developers streamlining their workflow today.
                 </p>
             </div>
 

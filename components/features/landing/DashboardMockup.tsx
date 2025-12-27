@@ -5,7 +5,6 @@ import {
     Circle,
     Search,
     Filter,
-    Terminal,
     Clock,
     Play,
     Settings,

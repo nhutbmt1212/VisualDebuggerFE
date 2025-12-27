@@ -14,9 +14,11 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
+    "mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}\n\nmutation Register($input: RegisterInput!) {\n  register(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}": typeof types.LoginDocument,
     "query GetProjects {\n  projects {\n    id\n    name\n    description\n    apiKey\n    createdAt\n    updatedAt\n  }\n}": typeof types.GetProjectsDocument,
 };
 const documents: Documents = {
+    "mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}\n\nmutation Register($input: RegisterInput!) {\n  register(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}": types.LoginDocument,
     "query GetProjects {\n  projects {\n    id\n    name\n    description\n    apiKey\n    createdAt\n    updatedAt\n  }\n}": types.GetProjectsDocument,
 };
 
@@ -34,6 +36,10 @@ const documents: Documents = {
  */
 export function gql(source: string): unknown;
 
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}\n\nmutation Register($input: RegisterInput!) {\n  register(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}"): (typeof documents)["mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}\n\nmutation Register($input: RegisterInput!) {\n  register(input: $input) {\n    accessToken\n    user {\n      id\n      email\n      name\n    }\n  }\n}"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

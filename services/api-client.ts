@@ -8,6 +8,17 @@ const apiClient = axios.create({
     },
 });
 
+// Add a request interceptor to add the token
+apiClient.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('visual_debugger_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+});
+
 // Helper for GraphQL requests
 export const graphqlRequest = async (query: any, variables = {}) => {
     const response = await apiClient.post('/graphql', {

@@ -16,9 +16,17 @@ const config: Config = {
                 background: "hsl(var(--background))",
                 foreground: "hsl(var(--foreground))",
                 primary: {
-                    DEFAULT: "hsl(var(--primary))",
+                    DEFAULT: "#6A5ACD",
                     foreground: "hsl(var(--primary-foreground))",
+                    hover: "#584AB5",
                 },
+                "background-light": "#fcfcfc",
+                "background-dark": "#1a1625",
+                "card-dark": "#241f31",
+                "surface-dark": "#2f283f",
+                "success": "#46c37b",
+                "error": "#f55555",
+                "warning": "#fca326",
                 secondary: {
                     DEFAULT: "hsl(var(--secondary))",
                     foreground: "hsl(var(--secondary-foreground))",
@@ -43,6 +51,9 @@ const config: Config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+            },
+            fontFamily: {
+                "display": ["Space Grotesk", "sans-serif"],
             },
             borderRadius: {
                 lg: "var(--radius)",

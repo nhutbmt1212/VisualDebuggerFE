@@ -1,10 +1,95 @@
-query GetProjects {
-  projects {
+query GetProjects($page: Int, $limit: Int) {
+  projects(page: $page, limit: $limit) {
+    items {
+      id
+      name
+      description
+      apiKey
+      createdAt
+      updatedAt
+    }
+    totalCount
+    page
+    limit
+    totalPages
+    hasNextPage
+    hasPreviousPage
+  }
+}
+
+mutation CreateProject($input: CreateProjectInput!) {
+  createProject(input: $input) {
+    id
+    name
+    description
+    apiKey
+    createdAt
+  }
+}
+
+query GetProject($id: ID!) {
+  project(id: $id) {
     id
     name
     description
     apiKey
     createdAt
     updatedAt
+  }
+}
+
+query GetDashboardStats {
+  dashboardStats {
+    totalEvents
+    errorRate
+    avgLatency
+    activeSessions
+    eventFrequency
+  }
+}
+
+query GetRecentSessions($limit: Int) {
+  recentSessions(limit: $limit) {
+    id
+    environment
+    userAgent
+    ipAddress
+    startedAt
+    project {
+      id
+      name
+    }
+    events {
+      id
+      type
+      name
+      httpMethod
+      httpStatus
+      duration
+      timestamp
+    }
+  }
+}
+
+query GetProjectSessions($projectId: ID!) {
+  sessions(projectId: $projectId) {
+    id
+    environment
+    userAgent
+    ipAddress
+    startedAt
+    project {
+      id
+      name
+    }
+    events {
+      id
+      type
+      name
+      httpMethod
+      httpStatus
+      duration
+      timestamp
+    }
   }
 }

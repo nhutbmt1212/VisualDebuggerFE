@@ -1,103 +1,119 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { projectsService } from '@/services/projects.service';
-import { Project } from '@/graphql/generated/graphql';
-import { RefreshCcw } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Project, DebugSession } from '@/graphql/generated/graphql';
+import { useProjects, useDashboardStats, useRecentSessions } from '@/hooks/useProjects';
 import Link from 'next/link';
 import { ProjectCard } from '@/components/features/projects/ProjectCard';
 import { CreateProjectDialog } from '@/components/features/projects/CreateProjectDialog';
 import { Pagination } from '@/components/ui/pagination';
 import { ActivityLog } from '@/components/features/projects/ActivityLog';
-import { StatItem, ActivityItem } from '@/components/features/projects/types';
+import { TrendChart } from '@/components/features/projects/TrendChart';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ProjectCardSkeleton, ActivityItemSkeleton } from '@/components/features/projects/Skeletons';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function ProjectsPage() {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiInsight, setAiInsight] = useState<string | null>(null);
 
-    // Pagination state
+    // Projects Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
     const [limit, setLimit] = useState(10);
-    const [stats, setStats] = useState<StatItem[]>([]);
-    const [activities, setActivities] = useState<ActivityItem[]>([]);
 
-    const loadProjects = useCallback(async (page = 1, currentLimit = limit) => {
-        try {
-            setLoading(true);
-            const data = await projectsService.fetchAll(page, currentLimit);
-            setProjects(data.items || []);
-            setTotalPages(data.totalPages || 1);
-            setCurrentPage(data.page || 1);
-            setError(null);
-        } catch (err) {
-            const error = err as Error;
-            setError(error.message || 'Failed to load projects');
-        } finally {
-            setLoading(false);
-        }
-    }, [limit]);
+    // Activity Pagination state
+    const [activityPage, setActivityPage] = useState(1);
+    const [activityLimit, setActivityLimit] = useState(5);
+    const [trendRange, setTrendRange] = useState('24h');
 
-    const loadData = useCallback(async () => {
-        try {
-            const statsData = await projectsService.fetchStats();
-            const sessionsData = await projectsService.fetchRecentSessions(4);
+    // SWR Hooks
+    const {
+        projects,
+        totalPages,
+        isLoading: loadingProjects,
+        isError: projectsError,
+        mutate: revalidateProjects
+    } = useProjects(currentPage, limit);
 
-            setStats([
-                { label: 'Total Events', value: statsData.totalEvents.toLocaleString(), change: '+5.2%', changeType: 'positive' },
-                { label: 'Error Rate', value: `${statsData.errorRate}%`, change: '-0.5%', changeType: 'positive' },
-                { label: 'Avg Latency', value: statsData.avgLatency, change: '+2ms', changeType: 'negative' },
-                { label: 'Active Sessions', value: statsData.activeSessions.toString(), change: '+1', changeType: 'positive' },
-            ]);
+    const {
+        stats: statsData,
+        isLoading: loadingStats
+    } = useDashboardStats(trendRange);
 
-            const formattedActivities: ActivityItem[] = sessionsData.map((session: any) => {
-                const latestEvent = session.events?.[0];
-                let method: any = 'GET';
-                let type: 'success' | 'error' | 'warning' = 'success';
+    const {
+        sessions: rawSessions,
+        totalPages: activityTotalPages,
+        isLoading: loadingSessions
+    } = useRecentSessions(activityPage, activityLimit);
 
-                if (latestEvent) {
-                    if (latestEvent.type === 'HTTP_REQUEST' && latestEvent.httpMethod) {
-                        method = latestEvent.httpMethod;
-                    } else if (latestEvent.type === 'ERROR') {
-                        method = 'ERR';
-                        type = 'error';
-                    } else if (latestEvent.type === 'LOG') {
-                        method = 'LOG';
-                    } else {
-                        method = 'EVNT';
-                    }
+    const stats = useMemo(() => [
+        {
+            label: 'Total Events',
+            value: statsData?.totalEvents.toLocaleString() || '0',
+            change: `${statsData?.totalEventsChange > 0 ? '+' : ''}${statsData?.totalEventsChange || 0}%`,
+            changeType: (statsData?.totalEventsChange || 0) >= 0 ? 'positive' : 'negative'
+        },
+        {
+            label: 'Error Rate',
+            value: `${statsData?.errorRate || 0}%`,
+            change: `${statsData?.errorRateChange > 0 ? '+' : ''}${statsData?.errorRateChange || 0}%`,
+            changeType: (statsData?.errorRateChange || 0) <= 0 ? 'positive' : 'negative' // Lower error rate is positive
+        },
+        {
+            label: 'Avg Latency',
+            value: statsData?.avgLatency || '0ms',
+            change: `${statsData?.avgLatencyChange > 0 ? '+' : ''}${statsData?.avgLatencyChange || 0}ms`,
+            changeType: (statsData?.avgLatencyChange || 0) <= 0 ? 'positive' : 'negative' // Lower latency is positive
+        },
+        {
+            label: 'Active Sessions',
+            value: statsData?.activeSessions.toString() || '0',
+            change: `${statsData?.activeSessionsChange > 0 ? '+' : ''}${statsData?.activeSessionsChange || 0}`,
+            changeType: (statsData?.activeSessionsChange || 0) >= 0 ? 'positive' : 'negative'
+        },
+    ], [statsData]);
+
+    const trendData = statsData?.trend || [];
+
+    const activities = useMemo(() => {
+        return rawSessions.map((session: DebugSession) => {
+            const latestEvent = session.events?.[0];
+            let method: string = 'GET';
+            let type: 'success' | 'error' | 'warning' = 'success';
+
+            if (latestEvent) {
+                if (latestEvent.type === 'HTTP_REQUEST' && latestEvent.httpMethod) {
+                    method = latestEvent.httpMethod;
+                } else if (latestEvent.type === 'ERROR') {
+                    method = 'ERR';
+                    type = 'error';
+                } else if (latestEvent.type === 'LOG') {
+                    method = 'LOG';
+                } else {
+                    method = 'EVNT';
                 }
+            }
 
-                return {
-                    id: session.id,
-                    session: `SESS-${session.id.substring(0, 4).toUpperCase()}`,
-                    method,
-                    path: latestEvent?.httpUrl || latestEvent?.filePath || session.environment,
-                    time: formatDistanceToNow(new Date(session.startedAt), { addSuffix: true }),
-                    duration: latestEvent?.duration ? `${latestEvent.duration}ms` : undefined,
-                    status: latestEvent?.httpStatus ? `${latestEvent.httpStatus}` : (latestEvent?.type === 'ERROR' ? 'ERROR' : 'OK'),
-                    type
-                };
-            });
-            setActivities(formattedActivities);
-        } catch (err) {
-            console.error('Failed to load dashboard data', err);
-        }
-    }, []);
+            return {
+                id: session.id,
+                projectId: session.project?.id,
+                session: `SESS-${session.id.substring(0, 4).toUpperCase()}`,
+                method,
+                path: latestEvent?.httpUrl || latestEvent?.filePath || session.environment,
+                time: formatDistanceToNow(new Date(session.startedAt), { addSuffix: true }),
+                duration: latestEvent?.duration ? `${latestEvent.duration}ms` : undefined,
+                status: latestEvent?.httpStatus ? `${latestEvent.httpStatus}` : (latestEvent?.type === 'ERROR' ? 'ERROR' : 'OK'),
+                type
+            };
+        });
+    }, [rawSessions]);
 
-    useEffect(() => {
-        loadProjects(currentPage, limit);
-        loadData();
-    }, [currentPage, limit, loadProjects, loadData]);
+    const error = projectsError ? (projectsError as Error).message : null;
 
     const filteredProjects = useMemo(() => {
-        return projects.filter(p =>
+        return projects.filter((p: Project) =>
             p.name.toLowerCase().includes(search.toLowerCase()) ||
             (p.description && p.description.toLowerCase().includes(search.toLowerCase()))
         );
@@ -112,6 +128,15 @@ export default function ProjectsPage() {
         setCurrentPage(1); // Reset to first page when limit changes
     };
 
+    const handleActivityPageChange = (page: number) => {
+        setActivityPage(page);
+    };
+
+    const handleActivityLimitChange = (newLimit: number) => {
+        setActivityLimit(newLimit);
+        setActivityPage(1);
+    };
+
     const generateProjectInsight = async () => {
         if (isGenerating) return;
         setIsGenerating(true);
@@ -122,13 +147,6 @@ export default function ProjectsPage() {
         }, 1500);
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <RefreshCcw className="w-8 h-8 animate-spin text-primary" />
-            </div>
-        );
-    }
 
     return (
         <div className="w-full">
@@ -143,7 +161,7 @@ export default function ProjectsPage() {
                             Manage your debugging environments and real-time event streams.
                         </p>
                     </div>
-                    <CreateProjectDialog onProjectCreated={loadProjects} />
+                    <CreateProjectDialog onProjectCreated={() => revalidateProjects()} />
                 </div>
 
                 {/* Top Search & Filter */}
@@ -189,37 +207,42 @@ export default function ProjectsPage() {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-                    {stats.map((stat, idx) => (
-                        <div key={idx} className="flex flex-col gap-1 p-3 rounded-md border border-slate-800 bg-card-dark">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wide">{stat.label}</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl font-bold text-white">{stat.value}</span>
-                                {stat.change && (
-                                    <span className={`text-[10px] px-1 rounded ${stat.changeType === 'positive' ? 'text-success bg-green-500/10' : 'text-error bg-red-500/10'}`}>
-                                        {stat.change}
-                                    </span>
-                                )}
+                    {loadingStats && statsData === undefined ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-2 p-3 rounded-md border border-slate-800 bg-card-dark">
+                                <Skeleton className="h-3 w-16" />
+                                <Skeleton className="h-6 w-24" />
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        stats.map((stat, idx) => (
+                            <div key={idx} className="flex flex-col gap-1 p-3 rounded-md border border-slate-800 bg-card-dark">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wide">{stat.label}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl font-bold text-white">{stat.value}</span>
+                                    {stat.change && (
+                                        <span className={`text-[10px] px-1 rounded ${stat.changeType === 'positive' ? 'text-success bg-green-500/10' : 'text-error bg-red-500/10'}`}>
+                                            {stat.change}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
 
-                {/* Recent Activity Section */}
+                {/* Activity Trend */}
                 <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Global Stream Activity</h3>
-                        <Link href="/activity" className="text-[10px] font-bold text-primary hover:underline">VIEW ALL</Link>
-                    </div>
-                    <ActivityLog activities={activities} />
+                    <TrendChart
+                        data={trendData}
+                        title="Global Activity Trend"
+                        subtitle={trendRange === '24h' ? "Requests per hour" : "Requests per day"}
+                        range={trendRange}
+                        onRangeChange={setTrendRange}
+                    />
                 </div>
 
-                {error && (
-                    <div className="bg-error/10 text-error px-6 py-4 rounded-xl border border-error/20 mb-8">
-                        {error}
-                    </div>
-                )}
-
-                {/* Section Header */}
+                {/* Your Projects Section */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Your Projects</h3>
                     <div className="flex items-center gap-3">
@@ -230,31 +253,76 @@ export default function ProjectsPage() {
                     </div>
                 </div>
 
-                {/* Projects Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    {filteredProjects.map(project => (
-                        <ProjectCard key={project.id} project={project} />
-                    ))}
-                    {filteredProjects.length === 0 && !loading && (
-                        <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-800 rounded-lg bg-card-dark/50">
-                            <span className="material-symbols-outlined text-slate-600 text-4xl mb-4">search_off</span>
-                            <p className="text-slate-500 text-lg">No projects found matching your search.</p>
-                            <Link href="/projects/new" className="text-primary hover:underline mt-4 inline-block font-bold">
-                                Create your first project
-                            </Link>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {loadingProjects && projects.length === 0 ? (
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <ProjectCardSkeleton key={i} />
+                        ))
+                    ) : (
+                        <>
+                            {filteredProjects.map((project: Project) => (
+                                <ProjectCard key={project.id} project={project} />
+                            ))}
+                            {filteredProjects.length === 0 && (
+                                <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-800 rounded-lg bg-card-dark/50">
+                                    <span className="material-symbols-outlined text-slate-600 text-4xl mb-4">search_off</span>
+                                    <p className="text-slate-500 text-lg">No projects found matching your search.</p>
+                                    <Link href="/projects/new" className="text-primary hover:underline mt-4 inline-block font-bold">
+                                        Create your first project
+                                    </Link>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
-                {/* Pagination */}
-                <div className="pb-12 text-center">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                        limit={limit}
-                        onLimitChange={handleLimitChange}
-                    />
+                {!loadingProjects && totalPages > 0 && (
+                    <div className="mb-6 text-center">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            limit={limit}
+                            onLimitChange={handleLimitChange}
+                        />
+                    </div>
+                )}
+
+                {error && (
+                    <div className="bg-error/10 text-error px-6 py-4 rounded-xl border border-error/20 mb-8">
+                        {error}
+                    </div>
+                )}
+
+                {/* Recent Activity Section */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Global Stream Activity</h3>
+                        <Link href="/activity" className="text-[10px] font-bold text-primary hover:underline">VIEW ALL</Link>
+                    </div>
+
+                    {loadingSessions && activities.length === 0 ? (
+                        <div className="space-y-3">
+                            {Array.from({ length: activityLimit }).map((_, i) => (
+                                <ActivityItemSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            <ActivityLog activities={activities} />
+                            {activities.length > 0 && (
+                                <div className="mt-4 flex justify-center">
+                                    <Pagination
+                                        currentPage={activityPage}
+                                        totalPages={activityTotalPages}
+                                        onPageChange={handleActivityPageChange}
+                                        limit={activityLimit}
+                                        onLimitChange={handleActivityLimitChange}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         </div>

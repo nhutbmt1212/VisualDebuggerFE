@@ -1,88 +1,104 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { projectsService } from '@/services/projects.service';
-import { Project } from '@/graphql/generated/graphql';
+import { useProject, useProjectStats, useProjectSessions } from '@/hooks/useProjects';
 import { StatCard } from '@/components/features/projects/StatCard';
 import { TrendChart } from '@/components/features/projects/TrendChart';
+import { Pagination } from '@/components/ui/pagination';
 import { ActivityLog } from '@/components/features/projects/ActivityLog';
 import { ApiKeySection } from '@/components/features/projects/ApiKeySection';
-import { ActivityItem } from '@/components/features/projects/types';
 import { formatDistanceToNow } from 'date-fns';
-import { RefreshCcw, ArrowLeft, Play, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Settings } from 'lucide-react';
+import { DebugSession } from '@/graphql/generated/graphql';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ActivityItemSkeleton } from '@/components/features/projects/Skeletons';
 import Image from 'next/image';
 
 export default function ProjectDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const [project, setProject] = useState<Project | null>(null);
-    const [activities, setActivities] = useState<ActivityItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const projectId = params.id as string;
 
-    useEffect(() => {
-        if (params.id) {
-            loadProject(params.id as string);
-        }
-    }, [params.id]);
+    // Activity Pagination state
+    const [activityPage, setActivityPage] = useState(1);
+    const [activityLimit, setActivityLimit] = useState(10);
+    const [trendRange, setTrendRange] = useState('24h');
 
-    const loadProject = async (id: string) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await projectsService.fetchById(id);
-            setProject(data);
+    // SWR Hooks
+    const {
+        project,
+        isLoading: loadingProject,
+        isValidating: validatingProject,
+        isError: projectError
+    } = useProject(projectId);
 
-            const sessionsData = await projectsService.fetchProjectSessions(id);
-            const formattedActivities: ActivityItem[] = sessionsData.map((session: any) => {
-                const latestEvent = session.events?.[0];
-                let method: any = 'GET';
-                let type: 'success' | 'error' | 'warning' = 'success';
+    const {
+        stats: projectStats,
+        isLoading: loadingStats
+    } = useProjectStats(projectId, trendRange);
 
-                if (latestEvent) {
-                    if (latestEvent.type === 'HTTP_REQUEST' && latestEvent.httpMethod) {
-                        method = latestEvent.httpMethod;
-                    } else if (latestEvent.type === 'ERROR') {
-                        method = 'ERR';
-                        type = 'error';
-                    } else if (latestEvent.type === 'LOG') {
-                        method = 'LOG';
-                    } else {
-                        method = 'EVNT';
-                    }
+    const {
+        sessions: rawSessions,
+        totalPages: activityTotalPages,
+        isLoading: loadingSessions
+    } = useProjectSessions(projectId, activityPage, activityLimit);
+
+    const activities = useMemo(() => {
+        return rawSessions.map((session: DebugSession) => {
+            const latestEvent = session.events?.[0];
+            let method: string = 'GET';
+            let type: 'success' | 'error' | 'warning' = 'success';
+
+            if (latestEvent) {
+                if (latestEvent.type === 'HTTP_REQUEST' && latestEvent.httpMethod) {
+                    method = latestEvent.httpMethod;
+                } else if (latestEvent.type === 'ERROR') {
+                    method = 'ERR';
+                    type = 'error';
+                } else if (latestEvent.type === 'LOG') {
+                    method = 'LOG';
+                } else {
+                    method = 'EVNT';
                 }
+            }
 
-                return {
-                    id: session.id,
-                    session: `SESS-${session.id.substring(0, 4).toUpperCase()}`,
-                    method,
-                    path: latestEvent?.httpUrl || latestEvent?.filePath || session.environment,
-                    time: formatDistanceToNow(new Date(session.startedAt), { addSuffix: true }),
-                    duration: latestEvent?.duration ? `${latestEvent.duration}ms` : undefined,
-                    status: latestEvent?.httpStatus ? `${latestEvent.httpStatus}` : (latestEvent?.type === 'ERROR' ? 'ERROR' : 'OK'),
-                    type
-                };
-            });
-            setActivities(formattedActivities);
-        } catch (err) {
-            const error = err as Error;
-            setError(error.message || 'Failed to load project details');
-        } finally {
-            setLoading(false);
-        }
+            return {
+                id: session.id,
+                projectId: session.project?.id || projectId,
+                session: `SESS-${session.id.substring(0, 4).toUpperCase()}`,
+                method,
+                path: latestEvent?.httpUrl || latestEvent?.filePath || session.environment,
+                time: formatDistanceToNow(new Date(session.startedAt), { addSuffix: true }),
+                duration: latestEvent?.duration ? `${latestEvent.duration}ms` : undefined,
+                status: latestEvent?.httpStatus ? `${latestEvent.httpStatus}` : (latestEvent?.type === 'ERROR' ? 'ERROR' : 'OK'),
+                type
+            };
+        });
+    }, [rawSessions, projectId]);
+
+    const projectErrorMessage = projectError ? (projectError as Error).message || '' : '';
+    const isAborted = projectErrorMessage.toLowerCase().includes('abort') ||
+        projectErrorMessage.toLowerCase().includes('canceled');
+
+    // Treat aborted/canceled as a loading state to avoid flashing "Project not found"
+    const isLoadingState = loadingProject || validatingProject || isAborted;
+    const showSkeleton = isLoadingState && !project;
+    const error = (!isAborted && projectError) ? projectErrorMessage : null;
+
+    const handleActivityPageChange = (page: number) => {
+        setActivityPage(page);
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-                <RefreshCcw className="animate-spin text-primary size-8" />
-            </div>
-        );
-    }
+    const handleActivityLimitChange = (newLimit: number) => {
+        setActivityLimit(newLimit);
+        setActivityPage(1);
+    };
 
-    if (error || !project) {
+    if (!isLoadingState && (error || !project)) {
         return (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] space-y-4 text-center">
                 <div className="p-4 bg-error/10 border border-error/20 rounded-2xl text-error max-w-md">
@@ -110,7 +126,9 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Workspace / Projects</span>
                     </div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">{project.name}</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tight">
+                        {showSkeleton ? <Skeleton className="h-8 w-40" /> : project?.name}
+                    </h1>
                 </div>
             </div>
 
@@ -119,22 +137,43 @@ export default function ProjectDetailPage() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6 lg:flex-1">
                     <div className="flex items-start gap-4">
                         <div className="relative shrink-0 w-24 h-24 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-[#161d27] group">
-                            <Image
-                                src={`https://picsum.photos/seed/${project.id}/200/200`}
-                                alt="Service logo"
-                                fill
-                                className="object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            {showSkeleton ? (
+                                <Skeleton className="absolute inset-0" />
+                            ) : (
+                                <>
+                                    <Image
+                                        src={`https://picsum.photos/seed/${project?.id}/200/200`}
+                                        alt="Service logo"
+                                        fill
+                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                </>
+                            )}
                         </div>
                         <div className="flex flex-col pt-1">
                             <div className="flex items-center gap-3 mb-1.5">
-                                <h2 className="text-2xl font-black text-white leading-tight tracking-tight uppercase">{project.name}</h2>
-                                <span className="px-2.5 py-0.5 rounded-full bg-success/10 border border-success/20 text-success text-[10px] font-black uppercase tracking-widest">Active</span>
+                                {showSkeleton ? (
+                                    <Skeleton className="h-8 w-48" />
+                                ) : (
+                                    <>
+                                        <h2 className="text-2xl font-black text-white leading-tight tracking-tight uppercase">{project?.name}</h2>
+                                        <span className="px-2.5 py-0.5 rounded-full bg-success/10 border border-success/20 text-success text-[10px] font-black uppercase tracking-widest">Active</span>
+                                    </>
+                                )}
                             </div>
-                            <p className="text-slate-400 text-sm leading-relaxed max-w-xl font-medium">
-                                {project.description || "No description provided for this project. Manage your debugging sessions and real-time event streams for this service."}
-                            </p>
+                            <div className="mt-1">
+                                {loadingProject ? (
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-4 w-96" />
+                                        <Skeleton className="h-4 w-64" />
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-400 text-sm leading-relaxed max-w-xl font-medium">
+                                        {project?.description || "No description provided for this project. Manage your debugging sessions and real-time event streams for this service."}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -156,39 +195,67 @@ export default function ProjectDetailPage() {
             </section>
 
             {/* API Key Section */}
-            <ApiKeySection apiKey={project.apiKey} />
+            {!showSkeleton && project && <ApiKeySection apiKey={project.apiKey} />}
 
-            {/* Stats Grid */}
             <section className="py-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <StatCard
-                        label="Total Events"
-                        value="1,240"
-                        change="+12% this week"
-                        trend="up"
-                        icon="dataset"
-                        color="text-blue-500"
-                    />
-                    <StatCard
-                        label="Error Rate"
-                        value="0.14%"
-                        subtext="Last 24 hours"
-                        icon="bug_report"
-                        color="text-red-500"
-                    />
-                    <StatCard
-                        label="Avg Latency"
-                        value="120ms"
-                        subtext="System Healthy"
-                        icon="timer"
-                        color="text-purple-500"
-                    />
+                    {loadingStats && projectStats === undefined ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="bg-card-dark rounded-xl p-4 border border-slate-800 shadow-sm h-[110px]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Skeleton className="size-8 rounded-md" />
+                                    <Skeleton className="h-3 w-20" />
+                                </div>
+                                <Skeleton className="h-8 w-24 mb-2" />
+                                <Skeleton className="h-3 w-16" />
+                            </div>
+                        ))
+                    ) : (
+                        <>
+                            <StatCard
+                                label="Total Events"
+                                value={projectStats?.totalEvents.toLocaleString() || "0"}
+                                change={`${projectStats?.totalEventsChange > 0 ? '+' : ''}${projectStats?.totalEventsChange || 0}%`}
+                                trend={(projectStats?.totalEventsChange || 0) >= 0 ? "up" : "down"}
+                                sentiment={(projectStats?.totalEventsChange || 0) >= 0 ? "positive" : "negative"}
+                                icon="dataset"
+                                color="text-blue-500"
+                            />
+                            <StatCard
+                                label="Error Rate"
+                                value={`${projectStats?.errorRate || 0}%`}
+                                change={`${projectStats?.errorRateChange > 0 ? '+' : ''}${projectStats?.errorRateChange || 0}%`}
+                                trend={(projectStats?.errorRateChange || 0) > 0 ? "up" : "down"}
+                                sentiment={(projectStats?.errorRateChange || 0) <= 0 ? "positive" : "negative"}
+                                icon="bug_report"
+                                color="text-red-500"
+                            />
+                            <StatCard
+                                label="Avg Latency"
+                                value={projectStats?.avgLatency || "0ms"}
+                                change={`${projectStats?.avgLatencyChange > 0 ? '+' : ''}${projectStats?.avgLatencyChange || 0}ms`}
+                                trend={(projectStats?.avgLatencyChange || 0) > 0 ? "up" : "down"}
+                                sentiment={(projectStats?.avgLatencyChange || 0) <= 0 ? "positive" : "negative"}
+                                icon="timer"
+                                color="text-purple-500"
+                            />
+                        </>
+                    )}
                 </div>
             </section>
 
-            {/* Chart Section */}
             <section className="py-2 md:py-4">
-                <TrendChart />
+                {loadingStats && projectStats === undefined ? (
+                    <Skeleton className="h-[300px] w-full rounded-xl" />
+                ) : (
+                    <TrendChart
+                        data={projectStats?.trend || []}
+                        title="Activity Trend"
+                        subtitle={trendRange === '24h' ? "Requests per hour" : "Requests per day"}
+                        range={trendRange}
+                        onRangeChange={setTrendRange}
+                    />
+                )}
             </section>
 
             {/* Recent Activity */}
@@ -197,7 +264,29 @@ export default function ProjectDetailPage() {
                     <h3 className="text-lg font-black text-white uppercase tracking-tight">Recent Activity</h3>
                     <button className="text-xs font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors">View All Stream</button>
                 </div>
-                <ActivityLog activities={activities} />
+
+                {loadingSessions && activities.length === 0 ? (
+                    <div className="space-y-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <ActivityItemSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : (
+                    <>
+                        <ActivityLog activities={activities} />
+                        {activities.length > 0 && (
+                            <div className="mt-4 flex justify-center">
+                                <Pagination
+                                    currentPage={activityPage}
+                                    totalPages={activityTotalPages}
+                                    onPageChange={handleActivityPageChange}
+                                    limit={activityLimit}
+                                    onLimitChange={handleActivityLimitChange}
+                                />
+                            </div>
+                        )}
+                    </>
+                )}
             </section>
         </div>
     );

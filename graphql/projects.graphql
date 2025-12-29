@@ -7,6 +7,7 @@ query GetProjects($page: Int, $limit: Int) {
       apiKey
       createdAt
       updatedAt
+      activityTrend
     }
     totalCount
     page
@@ -35,26 +36,117 @@ query GetProject($id: ID!) {
     apiKey
     createdAt
     updatedAt
+    activityTrend
   }
 }
 
-query GetDashboardStats {
-  dashboardStats {
+query GetDashboardStats($range: String) {
+  dashboardStats(range: $range) {
     totalEvents
     errorRate
     avgLatency
     activeSessions
     eventFrequency
+    trend {
+      hour
+      requests
+    }
+    totalEventsChange
+    errorRateChange
+    avgLatencyChange
+    activeSessionsChange
   }
 }
 
-query GetRecentSessions($limit: Int) {
-  recentSessions(limit: $limit) {
+query GetProjectStats($projectId: ID!, $range: String) {
+  projectStats(projectId: $projectId, range: $range) {
+    totalEvents
+    errorRate
+    avgLatency
+    activeSessions
+    eventFrequency
+    trend {
+      hour
+      requests
+    }
+    totalEventsChange
+    errorRateChange
+    avgLatencyChange
+    activeSessionsChange
+  }
+}
+
+query GetRecentSessions($page: Int, $limit: Int) {
+  recentSessions(page: $page, limit: $limit) {
+    items {
+      id
+      environment
+      userAgent
+      ipAddress
+      startedAt
+      project {
+        id
+        name
+      }
+      events {
+        id
+        type
+        name
+        httpMethod
+        httpStatus
+        duration
+        timestamp
+      }
+    }
+    totalCount
+    page
+    limit
+    totalPages
+    hasNextPage
+    hasPreviousPage
+  }
+}
+
+query GetProjectSessions($projectId: ID!, $page: Int, $limit: Int) {
+  sessions(projectId: $projectId, page: $page, limit: $limit) {
+    items {
+      id
+      environment
+      userAgent
+      ipAddress
+      startedAt
+      project {
+        id
+        name
+      }
+      events {
+        id
+        type
+        name
+        httpMethod
+        httpStatus
+        duration
+        timestamp
+      }
+    }
+    totalCount
+    page
+    limit
+    totalPages
+    hasNextPage
+    hasPreviousPage
+  }
+}
+
+query GetSession($id: ID!) {
+  session(id: $id) {
     id
     environment
     userAgent
     ipAddress
+    metadata
     startedAt
+    endedAt
     project {
       id
       name
@@ -63,33 +155,20 @@ query GetRecentSessions($limit: Int) {
       id
       type
       name
+      filePath
+      lineNumber
+      columnNumber
+      arguments
+      returnValue
+      errorMessage
+      errorStack
       httpMethod
+      httpUrl
       httpStatus
       duration
+      depth
       timestamp
-    }
-  }
-}
-
-query GetProjectSessions($projectId: ID!) {
-  sessions(projectId: $projectId) {
-    id
-    environment
-    userAgent
-    ipAddress
-    startedAt
-    project {
-      id
-      name
-    }
-    events {
-      id
-      type
-      name
-      httpMethod
-      httpStatus
-      duration
-      timestamp
+      parentEventId
     }
   }
 }

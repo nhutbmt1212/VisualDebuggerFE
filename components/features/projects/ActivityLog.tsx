@@ -2,12 +2,17 @@
 import React from 'react';
 import { ActivityItem } from './types';
 import { cn } from '@/lib/utils';
+import { useRouter, useParams } from 'next/navigation';
 
 interface ActivityLogProps {
     activities: ActivityItem[];
 }
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
+    const router = useRouter();
+    const params = useParams();
+    const projectId = params.id as string;
+
     const getStatusIcon = (type: string) => {
         switch (type) {
             case 'success': return <span className="material-symbols-outlined text-[20px] text-success">check_circle</span>;
@@ -26,11 +31,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
         }
     };
 
+    const handleItemClick = (item: ActivityItem) => {
+        const pId = item.projectId || projectId;
+        if (pId && item.id) {
+            router.push(`/projects/${pId}/sessions/${item.id}`);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activities.map((item) => (
                 <div
                     key={item.id}
+                    onClick={() => handleItemClick(item)}
                     className={cn(
                         "group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all cursor-pointer shadow-sm",
                         getStatusBg(item.type)
@@ -56,7 +69,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
                         <span className="text-[11px] font-medium text-slate-500">{item.time}</span>
                         <span className={cn(
                             "text-[11px] font-mono font-bold",
-                            item.status?.includes('ERR') || item.status?.includes('Bad') ? 'text-error' : 'text-slate-400'
+                            item.status?.toLowerCase().includes('err') || item.status?.toLowerCase().includes('bad') ? 'text-error' : 'text-slate-400'
                         )}>
                             {item.status || item.duration}
                         </span>

@@ -30,6 +30,7 @@ export interface StatItem {
 
 export interface ActivityItem {
     id: string;
+    projectId: string;
     session: string;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'LOG' | 'EVNT' | 'ERR';
     path: string;
@@ -47,6 +48,7 @@ export interface StatMetric {
     icon: string;
     color: string;
     subtext?: string;
+    sentiment?: 'positive' | 'negative' | 'neutral';
 }
 
 export interface ChartData {

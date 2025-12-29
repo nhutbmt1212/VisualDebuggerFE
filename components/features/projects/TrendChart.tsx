@@ -4,33 +4,41 @@ import React from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { ChartData } from './types';
 
-const data: ChartData[] = [
-    { hour: '00:00', requests: 40 },
-    { hour: '01:00', requests: 30 },
-    { hour: '02:00', requests: 45 },
-    { hour: '03:00', requests: 20 },
-    { hour: '04:00', requests: 25 },
-    { hour: '05:00', requests: 15 },
-    { hour: '06:00', requests: 40 },
-    { hour: '07:00', requests: 60 },
-    { hour: '08:00', requests: 80 },
-    { hour: '09:00', requests: 50 },
-    { hour: '10:00', requests: 70 },
-];
+interface TrendChartProps {
+    data: ChartData[];
+    title?: string;
+    subtitle?: string;
+    range?: string;
+    onRangeChange?: (range: string) => void;
+}
 
-export const TrendChart: React.FC = () => {
+export const TrendChart: React.FC<TrendChartProps> = ({
+    data,
+    title = "Activity Trend",
+    subtitle = "Requests per hour",
+    range = '24h',
+    onRangeChange
+}) => {
     return (
-        <div className="bg-card-dark rounded-xl p-5 border border-slate-800 shadow-sm">
-            <div className="flex justify-between items-end mb-4">
+        <div className="bg-card-dark rounded-xl p-5 border border-slate-800 shadow-sm h-full">
+            <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h3 className="text-base font-bold text-white tracking-tight">Activity Trend</h3>
-                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Requests per hour</p>
+                    <h3 className="text-base font-bold text-white tracking-tight">{title}</h3>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{subtitle}</p>
                 </div>
-                <div className="px-2 py-1 bg-background-dark rounded text-[10px] font-black text-slate-400 uppercase tracking-widest border border-slate-800">
-                    Last 24 Hours
-                </div>
+                {onRangeChange && (
+                    <select
+                        value={range}
+                        onChange={(e) => onRangeChange(e.target.value)}
+                        className="bg-background-dark text-[10px] font-black text-slate-400 uppercase tracking-widest border border-slate-800 rounded px-2 py-1 outline-none cursor-pointer hover:border-slate-700 transition-colors"
+                    >
+                        <option value="24h">Last 24 Hours</option>
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                    </select>
+                )}
             </div>
-            <div className="h-32 w-full mt-2">
+            <div className="h-40 w-full mt-2">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data}>
                         <defs>
@@ -39,7 +47,15 @@ export const TrendChart: React.FC = () => {
                                 <stop offset="95%" stopColor="#6A5ACD" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <XAxis dataKey="hour" hide />
+                        <XAxis
+                            dataKey="hour"
+                            stroke="#475569"
+                            fontSize={10}
+                            tickLine={false}
+                            axisLine={false}
+                            minTickGap={30}
+                            tickFormatter={(value) => value}
+                        />
                         <YAxis hide domain={['auto', 'auto']} />
                         <Tooltip
                             contentStyle={{
@@ -61,6 +77,7 @@ export const TrendChart: React.FC = () => {
                             fillOpacity={1}
                             fill="url(#colorRequests)"
                             strokeWidth={3}
+                            animationDuration={1000}
                         />
                     </AreaChart>
                 </ResponsiveContainer>

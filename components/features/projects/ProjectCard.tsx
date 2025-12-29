@@ -15,8 +15,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     const platform = 'Web';
     const shortName = project.name.substring(0, 3).toUpperCase();
     const subtitle = project.id.substring(0, 8);
-    const volume = [20, 45, 30, 80, 50, 90, 60, 40, 70, 55, 85, 45];
-    const volumeLabel = 'STABLE';
+    const volume = project.activityTrend && project.activityTrend.length > 0
+        ? project.activityTrend
+        : new Array(24).fill(0);
+    const volumeLabel = Math.max(...volume) > 0 ? 'ACTIVE' : 'STABLE';
 
     const getIcon = () => {
         return <span className="text-xs font-bold text-primary">{shortName}</span>;
@@ -42,7 +44,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <span className="flex size-2 rounded-full bg-success shadow-[0_0_8px_rgba(70,195,123,0.5)]"></span>
+                        <span className="relative flex size-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                            <span className="relative inline-flex rounded-full size-2 bg-success shadow-[0_0_8px_rgba(70,195,123,0.5)]"></span>
+                        </span>
                     </div>
                 </div>
 

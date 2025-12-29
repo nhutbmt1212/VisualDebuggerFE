@@ -13,17 +13,21 @@ export const Sparkline: React.FC<SparklineProps> = ({ data, status }) => {
     return (
         <div className="flex items-end h-8 gap-[2px] opacity-90 w-full">
             {data.map((val, idx) => {
-                const heightPercent = (val / max) * 100;
+                const heightPercent = max > 0 ? (val / max) * 100 : 0;
 
-                let bgColor = 'bg-slate-600';
-                if (status === ProjectStatus.ONLINE) {
-                    // Highlight specific peak if it's high
-                    if (idx === data.length - 3) bgColor = 'bg-primary';
-                    else if (val > max * 0.8) bgColor = 'bg-success';
-                } else if (status === ProjectStatus.CRITICAL) {
-                    if (val > max * 0.6) bgColor = 'bg-error';
-                } else if (status === ProjectStatus.PAUSED) {
-                    bgColor = 'bg-slate-700/50';
+                let bgColor = 'bg-slate-600/30';
+                if (max > 0) {
+                    if (status === ProjectStatus.ONLINE) {
+                        // Highlight specific peak if it's high
+                        if (idx === data.length - 3) bgColor = 'bg-primary';
+                        else if (val > max * 0.8) bgColor = 'bg-success';
+                        else bgColor = 'bg-slate-600';
+                    } else if (status === ProjectStatus.CRITICAL) {
+                        if (val > max * 0.6) bgColor = 'bg-error';
+                        else bgColor = 'bg-slate-600';
+                    } else if (status === ProjectStatus.PAUSED) {
+                        bgColor = 'bg-slate-700/50';
+                    }
                 }
 
                 return (

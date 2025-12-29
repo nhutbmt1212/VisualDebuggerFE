@@ -9,8 +9,8 @@ export const MOCK_STATS: StatItem[] = [
 ];
 
 export const MOCK_ACTIVITIES: ActivityItem[] = [
-    { id: '1', session: 'SESS-892', method: 'GET', path: '/api/v2/users/me', time: '2m ago', duration: '45ms', type: 'success' },
-    { id: '2', session: 'SESS-891', method: 'POST', path: '/api/v2/auth/login', time: '15m ago', status: '500 ERR', type: 'error' },
-    { id: '3', session: 'SESS-890', method: 'GET', path: '/api/v2/products', time: '1h ago', duration: '120ms', type: 'success' },
-    { id: '4', session: 'SESS-889', method: 'PUT', path: '/api/v2/user/settings', time: '2h ago', status: '400 Bad', type: 'warning' },
+    { id: '1', projectId: 'mock', session: 'SESS-892', method: 'GET', path: '/api/v2/users/me', time: '2m ago', duration: '45ms', type: 'success' },
+    { id: '2', projectId: 'mock', session: 'SESS-891', method: 'POST', path: '/api/v2/auth/login', time: '15m ago', status: '500 ERR', type: 'error' },
+    { id: '3', projectId: 'mock', session: 'SESS-890', method: 'GET', path: '/api/v2/products', time: '1h ago', duration: '120ms', type: 'success' },
+    { id: '4', projectId: 'mock', session: 'SESS-889', method: 'PUT', path: '/api/v2/user/settings', time: '2h ago', status: '400 Bad', type: 'warning' },
 ];

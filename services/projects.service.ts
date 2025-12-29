@@ -1,5 +1,5 @@
 import { graphqlRequest } from './api-client';
-import { GetProjectsDocument, CreateProjectDocument, CreateProjectInput, GetProjectDocument, GetDashboardStatsDocument, GetRecentSessionsDocument, GetProjectSessionsDocument } from '../graphql/generated/graphql';
+import { GetProjectsDocument, CreateProjectDocument, CreateProjectInput, GetProjectDocument, GetDashboardStatsDocument, GetRecentSessionsDocument, GetProjectSessionsDocument, GetProjectStatsDocument, GetSessionDocument } from '../graphql/generated/graphql';
 
 export const projectsService = {
     async fetchAll(page = 1, limit = 10) {
@@ -14,16 +14,24 @@ export const projectsService = {
         const data = await graphqlRequest(GetProjectDocument, { id });
         return data.project;
     },
-    async fetchStats() {
-        const data = await graphqlRequest(GetDashboardStatsDocument, {});
+    async fetchStats(range = '24h') {
+        const data = await graphqlRequest(GetDashboardStatsDocument, { range });
         return data.dashboardStats;
     },
-    async fetchRecentSessions(limit = 5) {
-        const data = await graphqlRequest(GetRecentSessionsDocument, { limit });
+    async fetchRecentSessions(page = 1, limit = 5) {
+        const data = await graphqlRequest(GetRecentSessionsDocument, { page, limit });
         return data.recentSessions;
     },
-    async fetchProjectSessions(projectId: string) {
-        const data = await graphqlRequest(GetProjectSessionsDocument, { projectId });
+    async fetchProjectSessions(projectId: string, page = 1, limit = 10) {
+        const data = await graphqlRequest(GetProjectSessionsDocument, { projectId, page, limit });
         return data.sessions;
     },
+    async fetchProjectStats(projectId: string, range = '24h') {
+        const data = await graphqlRequest(GetProjectStatsDocument, { projectId, range });
+        return data.projectStats;
+    },
+    async fetchSessionById(id: string) {
+        const data = await graphqlRequest(GetSessionDocument, { id });
+        return data.session;
+    }
 };

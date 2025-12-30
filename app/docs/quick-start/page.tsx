@@ -71,7 +71,7 @@ console.log('Logged in:', result.user.name);
                     Tạo Project Đầu Tiên
                 </h2>
                 <p className="text-slate-400 text-sm">
-                    Vào trang <code className="text-primary">/projects</code> và click "New Project" hoặc dùng API:
+                    Vào trang <code className="text-primary">/projects</code> và click &quot;New Project&quot; hoặc dùng API:
                 </p>
                 <CodeBlock
                     code={`import { projectsService } from '@/services/projects.service';

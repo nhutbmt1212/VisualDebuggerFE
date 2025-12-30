@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Copy, Terminal } from 'lucide-react';
 
-function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
+function CodeBlock({ code }: { code: string; language?: string }) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {

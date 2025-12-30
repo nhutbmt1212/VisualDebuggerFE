@@ -46,7 +46,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
                     onClick={() => handleItemClick(item)}
                     className={cn(
                         "group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all cursor-pointer shadow-sm",
-                        getStatusBg(item.type)
+                        getStatusBg(item.type),
+                        item.isNew && "animate-pulse ring-2 ring-primary/50"
                     )}
                 >
                     <div className="flex items-center gap-3 mb-2 md:mb-0">

@@ -32,12 +32,13 @@ export interface ActivityItem {
     id: string;
     projectId: string;
     session: string;
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'LOG' | 'EVNT' | 'ERR';
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'LOG' | 'EVNT' | 'ERR' | string;
     path: string;
     time: string;
     duration?: string;
     status?: string;
     type: 'success' | 'error' | 'warning';
+    isNew?: boolean; // For real-time animation
 }
 
 export interface StatMetric {

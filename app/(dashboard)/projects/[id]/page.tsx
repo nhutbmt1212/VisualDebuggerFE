@@ -2,17 +2,17 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useProject, useProjectStats, useProjectSessions } from '@/hooks/useProjects';
+import { useProject } from '@/hooks/useProjects';
+import { useRealtimeActivity } from '@/hooks/useRealtimeActivity';
 import { StatCard } from '@/components/features/projects/StatCard';
 import { TrendChart } from '@/components/features/projects/TrendChart';
 import { Pagination } from '@/components/ui/pagination';
 import { ActivityLog } from '@/components/features/projects/ActivityLog';
 import { ApiKeySection } from '@/components/features/projects/ApiKeySection';
-import { formatDistanceToNow } from 'date-fns';
+import { LiveIndicator } from '@/components/ui/live-indicator';
 import { ArrowLeft, Play, Settings } from 'lucide-react';
-import { DebugSession } from '@/graphql/generated/graphql';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ActivityItemSkeleton } from '@/components/features/projects/Skeletons';
@@ -26,9 +26,8 @@ export default function ProjectDetailPage() {
     // Activity Pagination state
     const [activityPage, setActivityPage] = useState(1);
     const [activityLimit, setActivityLimit] = useState(10);
-    const [trendRange, setTrendRange] = useState('24h');
 
-    // SWR Hooks
+    // Project data
     const {
         project,
         isLoading: loadingProject,
@@ -36,55 +35,29 @@ export default function ProjectDetailPage() {
         isError: projectError
     } = useProject(projectId);
 
+    // Realtime activity (combines SWR + WebSocket)
     const {
-        stats: projectStats,
-        isLoading: loadingStats
-    } = useProjectStats(projectId, trendRange);
-
-    const {
-        sessions: rawSessions,
+        isConnected,
+        isConnecting,
+        activities,
         totalPages: activityTotalPages,
-        isLoading: loadingSessions
-    } = useProjectSessions(projectId, activityPage, activityLimit);
+        isLoading: loadingSessions,
+        stats: projectStats,
+        statsLoading: loadingStats,
+        newEventsCount,
+        handleRefresh,
+        setTrendRange,
+        trendRange
+    } = useRealtimeActivity({
+        projectId,
+        page: activityPage,
+        limit: activityLimit
+    });
 
-    const activities = useMemo(() => {
-        return rawSessions.map((session: DebugSession) => {
-            const latestEvent = session.events?.[0];
-            let method: string = 'GET';
-            let type: 'success' | 'error' | 'warning' = 'success';
-
-            if (latestEvent) {
-                if (latestEvent.type === 'HTTP_REQUEST' && latestEvent.httpMethod) {
-                    method = latestEvent.httpMethod;
-                } else if (latestEvent.type === 'ERROR') {
-                    method = 'ERR';
-                    type = 'error';
-                } else if (latestEvent.type === 'LOG') {
-                    method = 'LOG';
-                } else {
-                    method = 'EVNT';
-                }
-            }
-
-            return {
-                id: session.id,
-                projectId: session.project?.id || projectId,
-                session: `SESS-${session.id.substring(0, 4).toUpperCase()}`,
-                method,
-                path: latestEvent?.httpUrl || latestEvent?.filePath || session.environment,
-                time: formatDistanceToNow(new Date(session.startedAt), { addSuffix: true }),
-                duration: latestEvent?.duration ? `${latestEvent.duration}ms` : undefined,
-                status: latestEvent?.httpStatus ? `${latestEvent.httpStatus}` : (latestEvent?.type === 'ERROR' ? 'ERROR' : 'OK'),
-                type
-            };
-        });
-    }, [rawSessions, projectId]);
-
+    // Error handling
     const projectErrorMessage = projectError ? (projectError as Error).message || '' : '';
     const isAborted = projectErrorMessage.toLowerCase().includes('abort') ||
         projectErrorMessage.toLowerCase().includes('canceled');
-
-    // Treat aborted/canceled as a loading state to avoid flashing "Project not found"
     const isLoadingState = loadingProject || validatingProject || isAborted;
     const showSkeleton = isLoadingState && !project;
     const error = (!isAborted && projectError) ? projectErrorMessage : null;
@@ -261,8 +234,21 @@ export default function ProjectDetailPage() {
             {/* Recent Activity */}
             <section className="py-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight">Recent Activity</h3>
-                    <button className="text-xs font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors">View All Stream</button>
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-black text-white uppercase tracking-tight">Recent Activity</h3>
+                        <LiveIndicator isConnected={isConnected} isConnecting={isConnecting} />
+                        {newEventsCount > 0 && (
+                            <span className="px-2 py-0.5 text-[10px] font-black bg-primary/20 text-primary rounded-full animate-pulse">
+                                +{newEventsCount} new
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleRefresh}
+                        className="text-xs font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
+                    >
+                        Refresh
+                    </button>
                 </div>
 
                 {loadingSessions && activities.length === 0 ? (

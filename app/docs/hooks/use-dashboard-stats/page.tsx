@@ -140,8 +140,8 @@ export default function UseDashboardStatsPage() {
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">range</code></td>
                                 <td className="py-3 px-4 text-slate-400">string</td>
-                                <td className="py-3 px-4 text-slate-400">'24h'</td>
-                                <td className="py-3 px-4 text-slate-400">Khoảng thời gian: '24h', '7d', '30d'</td>
+                                <td className="py-3 px-4 text-slate-400">&apos;24h&apos;</td>
+                                <td className="py-3 px-4 text-slate-400">Khoảng thời gian: &apos;24h&apos;, &apos;7d&apos;, &apos;30d&apos;</td>
                             </tr>
                         </tbody>
                     </table>
@@ -174,7 +174,7 @@ export default function UseDashboardStatsPage() {
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">avgLatency</code></td>
                                 <td className="py-3 px-4 text-slate-400">string</td>
-                                <td className="py-3 px-4 text-slate-400">Latency trung bình (e.g., "120ms")</td>
+                                <td className="py-3 px-4 text-slate-400">Latency trung bình (e.g., &quot;120ms&quot;)</td>
                             </tr>
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">activeSessions</code></td>

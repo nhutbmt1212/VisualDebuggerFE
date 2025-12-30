@@ -60,7 +60,7 @@ export function useDashboardStats(range = '24h') {
 }
 
 export function useProjectStats(projectId: string | null, range = '24h') {
-    const { data, error, isLoading } = useSWR(
+    const { data, error, isLoading, mutate: revalidate } = useSWR(
         projectId ? ['fetchProjectStats', projectId, range] : null,
         ([_, id, r]) => projectsService.fetchProjectStats(id, r),
         {
@@ -72,7 +72,8 @@ export function useProjectStats(projectId: string | null, range = '24h') {
     return {
         stats: data,
         isLoading,
-        isError: error
+        isError: error,
+        mutate: revalidate
     };
 }
 
@@ -95,7 +96,7 @@ export function useRecentSessions(page = 1, limit = 5) {
 }
 
 export function useProjectSessions(projectId: string | null, page = 1, limit = 10) {
-    const { data, error, isLoading } = useSWR(
+    const { data, error, isLoading, mutate: revalidate } = useSWR(
         projectId ? ['fetchProjectSessions', projectId, page, limit] : null,
         ([_, id, p, l]) => projectsService.fetchProjectSessions(id, p, l),
         {
@@ -108,12 +109,13 @@ export function useProjectSessions(projectId: string | null, page = 1, limit = 1
         sessions: data?.items || [],
         totalPages: data?.totalPages || 1,
         isLoading,
-        isError: error
+        isError: error,
+        mutate: revalidate
     };
 }
 
 export function useSession(id: string | null) {
-    const { data, error, isLoading, isValidating } = useSWR(
+    const { data, error, isLoading, isValidating, mutate: revalidate } = useSWR(
         id ? ['fetchSessionById', id] : null,
         ([_, sessionId]) => projectsService.fetchSessionById(sessionId),
         {
@@ -126,7 +128,33 @@ export function useSession(id: string | null) {
         session: data,
         isLoading,
         isValidating,
-        isError: error
+        isError: error,
+        mutate: revalidate
+    };
+}
+
+export function useSessionEvents(sessionId: string | null, page = 1, limit = 10) {
+    const { data, error, isLoading, isValidating, mutate: revalidate } = useSWR(
+        sessionId ? ['fetchSessionEvents', sessionId, page, limit] : null,
+        ([_, sid, p, l]) => projectsService.fetchSessionEvents(sid, p, l),
+        {
+            revalidateOnFocus: false,
+            keepPreviousData: true,
+        }
+    );
+
+    return {
+        events: data?.items || [],
+        totalCount: data?.totalCount || 0,
+        totalPages: data?.totalPages || 1,
+        page: data?.page || page,
+        limit: data?.limit || limit,
+        hasNextPage: data?.hasNextPage || false,
+        hasPreviousPage: data?.hasPreviousPage || false,
+        isLoading,
+        isValidating,
+        isError: error,
+        mutate: revalidate
     };
 }
 

@@ -172,3 +172,34 @@ query GetSession($id: ID!) {
     }
   }
 }
+
+query GetSessionEvents($sessionId: ID!, $page: Int, $limit: Int) {
+  sessionEvents(sessionId: $sessionId, page: $page, limit: $limit) {
+    items {
+      id
+      type
+      name
+      sessionId
+      filePath
+      lineNumber
+      columnNumber
+      arguments
+      returnValue
+      errorMessage
+      errorStack
+      httpMethod
+      httpUrl
+      httpStatus
+      duration
+      depth
+      timestamp
+      parentEventId
+    }
+    totalCount
+    page
+    limit
+    totalPages
+    hasNextPage
+    hasPreviousPage
+  }
+}

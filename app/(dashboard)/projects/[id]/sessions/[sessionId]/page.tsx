@@ -2,9 +2,9 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useSession } from '@/hooks/useProjects';
+import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { formatDistanceToNow, format } from 'date-fns';
 import {
     ArrowLeft,
@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LiveIndicator } from '@/components/ui/live-indicator';
+import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
 
 export default function SessionDetailPage() {
@@ -32,23 +34,31 @@ export default function SessionDetailPage() {
     const projectId = params.id as string;
     const sessionId = params.sessionId as string;
 
-    const { session, isLoading, isError } = useSession(sessionId);
+    const {
+        session, isLoading, isValidating, isError, events,
+        isConnected, isConnecting, newEventsCount,
+        handleRefresh, allEventsCount,
+        page, limit, totalPages, setPage, setLimit
+    } = useRealtimeSession({
+        sessionId,
+        projectId
+    });
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-    const events = useMemo(() => {
-        if (!session?.events) return [];
-        return [...session.events].sort((a, b) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-    }, [session?.events]);
+    // Error handling - ignore abort/canceled errors during navigation
+    const errorMessage = isError ? (isError as Error).message || '' : '';
+    const isAborted = errorMessage.toLowerCase().includes('abort') ||
+        errorMessage.toLowerCase().includes('canceled');
+    const isLoadingState = isLoading || isValidating || isAborted;
+    const error = (!isAborted && isError) ? errorMessage : null;
 
-    if (isError) {
+    if (!isLoadingState && (error || !session)) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                 <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 max-w-md w-full">
                     <AlertCircle className="size-12 mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">Failed to load session</h2>
-                    <p className="text-sm opacity-80 mb-6">The session you are looking for may have been deleted or you don&apos;t have access to it.</p>
+                    <p className="text-sm opacity-80 mb-6">{error || 'The session you are looking for may have been deleted or you don\'t have access to it.'}</p>
                     <Button variant="outline" onClick={() => router.push(`/projects/${projectId}`)} className="w-full">
                         <ArrowLeft className="mr-2 size-4" /> Back to Project
                     </Button>
@@ -169,12 +179,28 @@ export default function SessionDetailPage() {
                 {/* Right Column: Event Timeline */}
                 <div className="lg:col-span-8 space-y-4">
                     <div className="flex items-center justify-between mb-2 px-1">
-                        <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                            <Terminal className="size-4 text-primary" /> Event Timeline
-                        </h3>
-                        <span className="text-[10px] font-black text-slate-500 uppercase bg-slate-800/50 px-2 py-0.5 rounded-full border border-slate-700/50">
-                            {events.length} Events Total
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Terminal className="size-4 text-primary" /> Event Timeline
+                            </h3>
+                            <LiveIndicator isConnected={isConnected} isConnecting={isConnecting} />
+                            {newEventsCount > 0 && (
+                                <span className="px-2 py-0.5 text-[10px] font-black bg-primary/20 text-primary rounded-full animate-pulse">
+                                    +{newEventsCount} new
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleRefresh}
+                                className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
+                            >
+                                Refresh
+                            </button>
+                            <span className="text-[10px] font-black text-slate-500 uppercase bg-slate-800/50 px-2 py-0.5 rounded-full border border-slate-700/50">
+                                {allEventsCount} Events
+                            </span>
+                        </div>
                     </div>
 
                     {isLoading ? (
@@ -264,7 +290,10 @@ export default function SessionDetailPage() {
 
                                             {/* Expandable Content */}
                                             {isSelected && (
-                                                <div className="mt-4 pt-4 border-t border-slate-800/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div
+                                                    className="mt-4 pt-4 border-t border-slate-800/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     {isError && event.errorMessage && (
                                                         <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
                                                             <div className="text-[10px] text-red-400/60 uppercase font-black mb-1">Error Message</div>
@@ -316,13 +345,36 @@ export default function SessionDetailPage() {
 
                                                     {event.arguments && (
                                                         <div className="space-y-1">
-                                                            <div className="text-[10px] text-slate-500 uppercase font-black px-1">Arguments</div>
+                                                            <div className="text-[10px] text-slate-500 uppercase font-black px-1">
+                                                                {event.type === 'console_log' || event.type === 'console_error' || event.type === 'console_warn'
+                                                                    ? 'Logged Data'
+                                                                    : 'Arguments'}
+                                                            </div>
                                                             <pre className="p-3 bg-black/40 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-mono overflow-x-auto max-h-60">
                                                                 {(() => {
                                                                     try {
-                                                                        return JSON.stringify(JSON.parse(event.arguments), null, 2);
+                                                                        const parsed = typeof event.arguments === 'string'
+                                                                            ? JSON.parse(event.arguments)
+                                                                            : event.arguments;
+
+                                                                        // For console_log events, show only the data array
+                                                                        if ((event.type === 'console_log' || event.type === 'console_error' || event.type === 'console_warn') && parsed.data) {
+                                                                            // If data has only one item, show it directly
+                                                                            if (Array.isArray(parsed.data) && parsed.data.length === 1) {
+                                                                                const item = parsed.data[0];
+                                                                                return typeof item === 'string'
+                                                                                    ? item
+                                                                                    : JSON.stringify(item, null, 2);
+                                                                            }
+                                                                            // Otherwise show the data array
+                                                                            return JSON.stringify(parsed.data, null, 2);
+                                                                        }
+
+                                                                        return JSON.stringify(parsed, null, 2);
                                                                     } catch {
-                                                                        return event.arguments;
+                                                                        return typeof event.arguments === 'string'
+                                                                            ? event.arguments
+                                                                            : JSON.stringify(event.arguments);
                                                                     }
                                                                 })()}
                                                             </pre>
@@ -335,9 +387,17 @@ export default function SessionDetailPage() {
                                                             <pre className="p-3 bg-black/40 rounded-xl border border-slate-800 text-[11px] text-success/80 font-mono overflow-x-auto max-h-60">
                                                                 {(() => {
                                                                     try {
-                                                                        return JSON.stringify(JSON.parse(event.returnValue || ''), null, 2);
+                                                                        // If it's a string, try to parse and re-stringify for formatting
+                                                                        if (typeof event.returnValue === 'string') {
+                                                                            return JSON.stringify(JSON.parse(event.returnValue), null, 2);
+                                                                        }
+                                                                        // If it's an object, stringify it directly
+                                                                        return JSON.stringify(event.returnValue, null, 2);
                                                                     } catch {
-                                                                        return event.returnValue;
+                                                                        // Fallback to string conversion
+                                                                        return typeof event.returnValue === 'string'
+                                                                            ? event.returnValue
+                                                                            : JSON.stringify(event.returnValue);
                                                                     }
                                                                 })()}
                                                             </pre>
@@ -349,6 +409,19 @@ export default function SessionDetailPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {!isLoading && allEventsCount > 0 && (
+                        <div className="mt-6 flex justify-center">
+                            <Pagination
+                                currentPage={page}
+                                totalPages={totalPages}
+                                onPageChange={setPage}
+                                limit={limit}
+                                onLimitChange={setLimit}
+                            />
                         </div>
                     )}
                 </div>

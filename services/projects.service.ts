@@ -1,5 +1,5 @@
 import { graphqlRequest } from './api-client';
-import { GetProjectsDocument, CreateProjectDocument, CreateProjectInput, GetProjectDocument, GetDashboardStatsDocument, GetRecentSessionsDocument, GetProjectSessionsDocument, GetProjectStatsDocument, GetSessionDocument } from '../graphql/generated/graphql';
+import { GetProjectsDocument, CreateProjectDocument, CreateProjectInput, GetProjectDocument, GetDashboardStatsDocument, GetRecentSessionsDocument, GetProjectSessionsDocument, GetProjectStatsDocument, GetSessionDocument, GetSessionEventsDocument } from '../graphql/generated/graphql';
 
 export const projectsService = {
     async fetchAll(page = 1, limit = 10) {
@@ -33,5 +33,9 @@ export const projectsService = {
     async fetchSessionById(id: string) {
         const data = await graphqlRequest(GetSessionDocument, { id });
         return data.session;
+    },
+    async fetchSessionEvents(sessionId: string, page = 1, limit = 10) {
+        const data = await graphqlRequest(GetSessionEventsDocument, { sessionId, page, limit });
+        return data.sessionEvents;
     }
 };

@@ -175,13 +175,13 @@ export default function ButtonDocsPage() {
                         <tbody className="divide-y divide-slate-800">
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">variant</code></td>
-                                <td className="py-3 px-4 text-slate-400">'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'</td>
-                                <td className="py-3 px-4 text-slate-400">'default'</td>
+                                <td className="py-3 px-4 text-slate-400">&apos;default&apos; | &apos;destructive&apos; | &apos;outline&apos; | &apos;secondary&apos; | &apos;ghost&apos; | &apos;link&apos;</td>
+                                <td className="py-3 px-4 text-slate-400">&apos;default&apos;</td>
                             </tr>
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">size</code></td>
-                                <td className="py-3 px-4 text-slate-400">'default' | 'sm' | 'lg' | 'icon'</td>
-                                <td className="py-3 px-4 text-slate-400">'default'</td>
+                                <td className="py-3 px-4 text-slate-400">&apos;default&apos; | &apos;sm&apos; | &apos;lg&apos; | &apos;icon&apos;</td>
+                                <td className="py-3 px-4 text-slate-400">&apos;default&apos;</td>
                             </tr>
                             <tr>
                                 <td className="py-3 px-4"><code className="text-primary">asChild</code></td>

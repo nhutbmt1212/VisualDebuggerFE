@@ -9,6 +9,15 @@ interface ProjectCardProps {
     project: Project;
 }
 
+const formatBytes = (bytes: string | number) => {
+    const b = typeof bytes === 'string' ? parseInt(bytes) : bytes;
+    if (b === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(b) / Math.log(k));
+    return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     // Mocking template fields for the WOW effect
     const status = ProjectStatus.ONLINE;
@@ -59,6 +68,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                         </span>
                     </div>
                     <Sparkline data={volume} status={status} />
+                </div>
+
+                <div className="flex flex-col gap-2 mt-4">
+                    <div className="flex justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                        <span>Storage Usage</span>
+                        <span>{formatBytes(project.storageUsage)} / {project.storageLimit ? formatBytes(project.storageLimit) : 'N/A'}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-500 ${Number(project.storageUsage) / Number(project.storageLimit || 1) > 0.9 ? 'bg-error' : 'bg-primary'}`}
+                            style={{ width: `${Math.min(100, (Number(project.storageUsage) / Number(project.storageLimit || 1)) * 100)}%` }}
+                        ></div>
+                    </div>
                 </div>
             </div>
 

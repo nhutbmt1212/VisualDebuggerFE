@@ -28,7 +28,7 @@ export function useProjects(page = 1, limit = 10) {
 }
 
 export function useProject(id: string | null) {
-    const { data, error, isLoading, isValidating } = useSWR(
+    const { data, error, isLoading, isValidating, mutate: revalidate } = useSWR(
         id ? ['fetchById', id] : null,
         ([_, projectId]) => projectsService.fetchById(projectId),
         { revalidateOnFocus: true }
@@ -38,7 +38,8 @@ export function useProject(id: string | null) {
         project: data,
         isLoading,
         isValidating,
-        isError: error
+        isError: error,
+        mutate: revalidate
     };
 }
 

@@ -5,9 +5,19 @@ query GetProjects($page: Int, $limit: Int) {
       name
       description
       apiKey
+      storageUsage
+      storageLimit
       createdAt
       updatedAt
       activityTrend
+      user {
+        id
+        email
+        name
+        plan
+        createdAt
+        updatedAt
+      }
     }
     totalCount
     page
@@ -28,15 +38,32 @@ mutation CreateProject($input: CreateProjectInput!) {
   }
 }
 
+mutation RegenerateProjectKey($id: ID!) {
+  regenerateProjectKey(id: $id) {
+    id
+    apiKey
+  }
+}
+
 query GetProject($id: ID!) {
   project(id: $id) {
     id
     name
     description
     apiKey
+    storageUsage
+    storageLimit
     createdAt
     updatedAt
     activityTrend
+    user {
+      id
+      email
+      name
+      plan
+      createdAt
+      updatedAt
+    }
   }
 }
 
@@ -94,6 +121,8 @@ query GetRecentSessions($page: Int, $limit: Int) {
         name
         httpMethod
         httpStatus
+        httpUrl
+        filePath
         duration
         timestamp
       }
@@ -125,6 +154,8 @@ query GetProjectSessions($projectId: ID!, $page: Int, $limit: Int) {
         name
         httpMethod
         httpStatus
+        httpUrl
+        filePath
         duration
         timestamp
       }

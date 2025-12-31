@@ -63,7 +63,8 @@ apiClient.interceptors.response.use(
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem(ACCESS_TOKEN_KEY);
                     localStorage.removeItem(REFRESH_TOKEN_KEY);
-                    window.location.href = '/login';
+                    const callbackUrl = encodeURIComponent(window.location.pathname);
+                    window.location.href = `/login?callbackUrl=${callbackUrl}`;
                 }
                 return Promise.reject(error);
             }
@@ -93,7 +94,8 @@ apiClient.interceptors.response.use(
             if (!refreshToken) {
                 isRefreshing = false;
                 if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
+                    const callbackUrl = encodeURIComponent(window.location.pathname);
+                    window.location.href = `/login?callbackUrl=${callbackUrl}`;
                 }
                 return Promise.reject(error);
             }
@@ -147,7 +149,8 @@ apiClient.interceptors.response.use(
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem(ACCESS_TOKEN_KEY);
                     localStorage.removeItem(REFRESH_TOKEN_KEY);
-                    window.location.href = '/login';
+                    const callbackUrl = encodeURIComponent(window.location.pathname);
+                    window.location.href = `/login?callbackUrl=${callbackUrl}`;
                 }
                 return Promise.reject(refreshError);
             } finally {
@@ -170,7 +173,26 @@ export const graphqlRequest = async <T = unknown>(
     });
 
     if (response.data.errors) {
-        throw new Error(response.data.errors[0].message);
+        const errorMessage = response.data.errors[0].message;
+
+        // Check for authentication errors in GraphQL response
+        const isAuthError =
+            errorMessage.toLowerCase().includes('unauthorized') ||
+            errorMessage.toLowerCase().includes('unauthenticated') ||
+            errorMessage.toLowerCase().includes('jwt') ||
+            errorMessage.toLowerCase().includes('token');
+
+        if (isAuthError && typeof window !== 'undefined') {
+            // Clear tokens and redirect to login
+            localStorage.removeItem(ACCESS_TOKEN_KEY);
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+            const callbackUrl = encodeURIComponent(window.location.pathname);
+            window.location.href = `/login?callbackUrl=${callbackUrl}`;
+            // Return a never-resolving promise to prevent UI from showing error
+            return new Promise(() => { });
+        }
+
+        throw new Error(errorMessage);
     }
 
     return response.data.data as T;

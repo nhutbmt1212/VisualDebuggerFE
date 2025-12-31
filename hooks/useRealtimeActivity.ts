@@ -107,7 +107,7 @@ export function useRealtimeActivity({
 
     // Transform to ActivityItem format
     const activities = useMemo(() => {
-        return allSessions.map((session: DebugSession) => {
+        return allSessions.map((session) => {
             const latestEvent = session.events?.[0];
             let method: string = 'GET';
             let type: 'success' | 'error' | 'warning' = 'success';

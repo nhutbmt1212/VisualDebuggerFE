@@ -12,21 +12,21 @@ import {
     Cpu,
     Clock,
     AlertCircle,
-    ChevronRight,
     Terminal,
-    Code,
     Network,
-    FileCode,
-    Bug,
     Server,
     Shield,
-    Info
+    Info,
+    Filter,
+    ChevronDown,
+    Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LiveIndicator } from '@/components/ui/live-indicator';
 import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { EventTableRow } from '@/components/features/sessions/EventTableRow';
 
 export default function SessionDetailPage() {
     const params = useParams();
@@ -178,6 +178,7 @@ export default function SessionDetailPage() {
 
                 {/* Right Column: Event Timeline */}
                 <div className="lg:col-span-8 space-y-4">
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-2 px-1">
                         <div className="flex items-center gap-3">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
@@ -203,213 +204,72 @@ export default function SessionDetailPage() {
                         </div>
                     </div>
 
+                    {/* Filter Bar */}
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex gap-3">
+                            <button className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors">
+                                <Filter size={14} /> All Events
+                            </button>
+                            <button className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors">
+                                Environment: {session?.environment || 'All'} <ChevronDown size={14} />
+                            </button>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-600 hidden sm:block">
+                            {session?.startedAt && (
+                                <>STARTED: {format(new Date(session.startedAt), 'HH:mm:ss')}</>
+                            )}
+                        </div>
+                    </div>
+
                     {isLoading ? (
-                        <div className="space-y-3">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                            ))}
+                        <div className="rounded-xl border border-slate-800/50 overflow-hidden bg-slate-900/10">
+                            <div className="bg-slate-900/50 border-b border-slate-800 px-4 py-3">
+                                <Skeleton className="h-4 w-full" />
+                            </div>
+                            <div className="divide-y divide-slate-800/50">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="px-4 py-3">
+                                        <Skeleton className="h-6 w-full" />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ) : (
-                        <div className="relative space-y-3">
-                            <div className="absolute left-6 top-8 bottom-8 w-px bg-slate-800" />
+                        <>
+                            {/* Events Table */}
+                            <div className="rounded-xl border border-slate-800/50 overflow-hidden bg-slate-900/10">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-900/50 border-b border-slate-800">
+                                        <tr>
+                                            <th className="px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">Type</th>
+                                            <th className="px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">Event / Route</th>
+                                            <th className="px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">Status</th>
+                                            <th className="px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider">Duration</th>
+                                            <th className="px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wider text-right">Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800/50">
+                                        {events.map((event) => (
+                                            <EventTableRow
+                                                key={event.id}
+                                                event={event}
+                                                isSelected={selectedEventId === event.id}
+                                                onSelect={() => setSelectedEventId(selectedEventId === event.id ? null : event.id)}
+                                                sessionStartTime={session?.startedAt}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                            {events.map((event) => {
-                                const isError = event.type === 'ERROR';
-                                const isHttp = event.type === 'HTTP_REQUEST' || event.type === 'HTTP_RESPONSE';
-                                const isSelected = selectedEventId === event.id;
-
-                                return (
-                                    <div
-                                        key={event.id}
-                                        className={cn(
-                                            "relative pl-12 transition-all duration-300 group",
-                                            isSelected ? "z-10" : ""
-                                        )}
-                                    >
-                                        <div
-                                            className={cn(
-                                                "absolute left-[18px] top-1/2 -translate-y-1/2 size-3 rounded-full border-2 border-[#090e14] z-10 transition-transform duration-300 group-hover:scale-125",
-                                                isError ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                                                    isHttp ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" :
-                                                        "bg-slate-600"
-                                            )}
-                                        />
-
-                                        <div
-                                            onClick={() => setSelectedEventId(isSelected ? null : event.id)}
-                                            className={cn(
-                                                "bg-[#111827] border rounded-2xl p-4 cursor-pointer transition-all duration-300",
-                                                isSelected
-                                                    ? "border-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] translate-x-1"
-                                                    : "border-slate-800/50 hover:border-slate-700 hover:translate-x-1 hover:bg-[#161d27]"
-                                            )}
-                                        >
-                                            <div className="flex items-center justify-between gap-4">
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    <div className={cn(
-                                                        "p-2 rounded-lg shrink-0",
-                                                        isError ? "bg-red-500/10 text-red-500" :
-                                                            isHttp ? "bg-blue-500/10 text-blue-500" :
-                                                                "bg-slate-800 text-slate-400"
-                                                    )}>
-                                                        {isError ? <Bug className="size-4" /> :
-                                                            isHttp ? <Network className="size-4" /> :
-                                                                <Code className="size-4" />}
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                                {event.type}
-                                                            </span>
-                                                            {event.duration && (
-                                                                <span className="text-[10px] text-slate-600 font-bold">
-                                                                    {event.duration}ms
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <h4 className="text-sm font-bold text-slate-200 truncate">
-                                                            {event.name || event.httpUrl || event.filePath || 'Unnamed Event'}
-                                                        </h4>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <div className="text-right hidden sm:block">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                                                            {format(new Date(event.timestamp), 'HH:mm:ss')}
-                                                        </div>
-                                                        <div className="text-[10px] text-slate-600">
-                                                            +{(new Date(event.timestamp).getTime() - new Date(session?.startedAt || 0).getTime())}ms
-                                                        </div>
-                                                    </div>
-                                                    <ChevronRight className={cn(
-                                                        "size-4 text-slate-600 transition-transform duration-300",
-                                                        isSelected ? "rotate-90 text-primary" : ""
-                                                    )} />
-                                                </div>
-                                            </div>
-
-                                            {/* Expandable Content */}
-                                            {isSelected && (
-                                                <div
-                                                    className="mt-4 pt-4 border-t border-slate-800/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    {isError && event.errorMessage && (
-                                                        <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
-                                                            <div className="text-[10px] text-red-400/60 uppercase font-black mb-1">Error Message</div>
-                                                            <div className="text-sm text-red-400 font-medium font-mono">
-                                                                {event.errorMessage}
-                                                            </div>
-                                                            {event.errorStack && (
-                                                                <div className="mt-3">
-                                                                    <div className="text-[10px] text-red-400/40 uppercase font-black mb-1">Stack Trace</div>
-                                                                    <pre className="text-[10px] text-red-400/50 font-mono overflow-x-auto p-2 bg-black/20 rounded-lg max-h-40">
-                                                                        {event.errorStack}
-                                                                    </pre>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    {isHttp && (
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            <div className="p-3 bg-slate-900/50 border border-slate-800/50 rounded-xl">
-                                                                <div className="text-[10px] text-slate-500 uppercase font-black mb-1">Request</div>
-                                                                <div className="text-xs font-mono text-slate-400">
-                                                                    <span className="text-blue-400 font-bold mr-2">{event.httpMethod}</span>
-                                                                    {event.httpUrl}
-                                                                </div>
-                                                            </div>
-                                                            {event.httpStatus && (
-                                                                <div className="p-3 bg-slate-900/50 border border-slate-800/50 rounded-xl">
-                                                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-1">Status</div>
-                                                                    <div className={cn(
-                                                                        "text-xs font-bold font-mono",
-                                                                        event.httpStatus >= 400 ? "text-red-400" : "text-green-400"
-                                                                    )}>
-                                                                        {event.httpStatus} {event.httpStatus >= 400 ? 'Error' : 'Success'}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    {(event.filePath || event.lineNumber) && (
-                                                        <div className="flex items-center gap-2 p-2 bg-slate-900/50 border border-slate-800/50 rounded-lg">
-                                                            <FileCode className="size-3.5 text-slate-500" />
-                                                            <span className="text-xs text-slate-400 font-mono truncate">
-                                                                {event.filePath}:{event.lineNumber}{event.columnNumber ? `:${event.columnNumber}` : ''}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {event.arguments && (
-                                                        <div className="space-y-1">
-                                                            <div className="text-[10px] text-slate-500 uppercase font-black px-1">
-                                                                {event.type === 'console_log' || event.type === 'console_error' || event.type === 'console_warn'
-                                                                    ? 'Logged Data'
-                                                                    : 'Arguments'}
-                                                            </div>
-                                                            <pre className="p-3 bg-black/40 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-mono overflow-x-auto max-h-60">
-                                                                {(() => {
-                                                                    try {
-                                                                        const parsed = typeof event.arguments === 'string'
-                                                                            ? JSON.parse(event.arguments)
-                                                                            : event.arguments;
-
-                                                                        // For console_log events, show only the data array
-                                                                        if ((event.type === 'console_log' || event.type === 'console_error' || event.type === 'console_warn') && parsed.data) {
-                                                                            // If data has only one item, show it directly
-                                                                            if (Array.isArray(parsed.data) && parsed.data.length === 1) {
-                                                                                const item = parsed.data[0];
-                                                                                return typeof item === 'string'
-                                                                                    ? item
-                                                                                    : JSON.stringify(item, null, 2);
-                                                                            }
-                                                                            // Otherwise show the data array
-                                                                            return JSON.stringify(parsed.data, null, 2);
-                                                                        }
-
-                                                                        return JSON.stringify(parsed, null, 2);
-                                                                    } catch {
-                                                                        return typeof event.arguments === 'string'
-                                                                            ? event.arguments
-                                                                            : JSON.stringify(event.arguments);
-                                                                    }
-                                                                })()}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-
-                                                    {event.returnValue && (
-                                                        <div className="space-y-1">
-                                                            <div className="text-[10px] text-slate-500 uppercase font-black px-1">Return Value</div>
-                                                            <pre className="p-3 bg-black/40 rounded-xl border border-slate-800 text-[11px] text-success/80 font-mono overflow-x-auto max-h-60">
-                                                                {(() => {
-                                                                    try {
-                                                                        // If it's a string, try to parse and re-stringify for formatting
-                                                                        if (typeof event.returnValue === 'string') {
-                                                                            return JSON.stringify(JSON.parse(event.returnValue), null, 2);
-                                                                        }
-                                                                        // If it's an object, stringify it directly
-                                                                        return JSON.stringify(event.returnValue, null, 2);
-                                                                    } catch {
-                                                                        // Fallback to string conversion
-                                                                        return typeof event.returnValue === 'string'
-                                                                            ? event.returnValue
-                                                                            : JSON.stringify(event.returnValue);
-                                                                    }
-                                                                })()}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                            {/* Listening Indicator */}
+                            {isConnected && (
+                                <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-700 font-mono uppercase tracking-widest">
+                                    <Circle size={8} fill="currentColor" className="text-primary animate-pulse" />
+                                    Listening for new events...
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* Pagination */}

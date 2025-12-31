@@ -4,6 +4,8 @@ export interface Project {
     description?: string;
     apiKey: string;
     userId: string;
+    storageUsage: string; // Serialized as string from BigInt
+    storageLimit?: string;
     createdAt: string;
     updatedAt: string;
 }

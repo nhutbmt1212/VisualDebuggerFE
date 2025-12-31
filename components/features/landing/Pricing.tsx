@@ -10,6 +10,7 @@ const pricingPlans = [
         period: 'forever',
         description: 'Perfect for side projects and testing',
         features: [
+            '100 MB storage per project',
             '1,000 events/month',
             '1 project',
             '7 days data retention',
@@ -30,6 +31,8 @@ const pricingPlans = [
         period: 'per month',
         description: 'For professional developers and small teams',
         features: [
+            '5 GB storage per project',
+            'Up to 10 projects',
             '100,000 events/month',
             'Unlimited projects',
             '30 days data retention',
@@ -89,8 +92,8 @@ export function Pricing() {
                         <button
                             onClick={() => setBillingCycle('monthly')}
                             className={`px-6 py-2 rounded-md font-semibold transition-all ${billingCycle === 'monthly'
-                                    ? 'bg-purple-600 text-white'
-                                    : 'text-zinc-400 hover:text-white'
+                                ? 'bg-purple-600 text-white'
+                                : 'text-zinc-400 hover:text-white'
                                 }`}
                         >
                             Monthly
@@ -98,8 +101,8 @@ export function Pricing() {
                         <button
                             onClick={() => setBillingCycle('yearly')}
                             className={`px-6 py-2 rounded-md font-semibold transition-all ${billingCycle === 'yearly'
-                                    ? 'bg-purple-600 text-white'
-                                    : 'text-zinc-400 hover:text-white'
+                                ? 'bg-purple-600 text-white'
+                                : 'text-zinc-400 hover:text-white'
                                 }`}
                         >
                             Yearly
@@ -116,8 +119,8 @@ export function Pricing() {
                         <div
                             key={index}
                             className={`relative rounded-2xl p-8 ${plan.popular
-                                    ? 'bg-gradient-to-b from-purple-900/20 to-zinc-900 border-2 border-purple-500'
-                                    : 'bg-zinc-900/50 border border-zinc-800'
+                                ? 'bg-gradient-to-b from-purple-900/20 to-zinc-900 border-2 border-purple-500'
+                                : 'bg-zinc-900/50 border border-zinc-800'
                                 } hover:border-purple-500/50 transition-all`}
                         >
                             {plan.popular && (
@@ -148,8 +151,8 @@ export function Pricing() {
 
                             <button
                                 className={`w-full py-3 rounded-lg font-semibold transition-all mb-8 ${plan.popular
-                                        ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                                    ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white'
                                     }`}
                             >
                                 {plan.cta}

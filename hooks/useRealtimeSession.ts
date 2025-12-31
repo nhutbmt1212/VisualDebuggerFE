@@ -24,7 +24,7 @@ interface UseRealtimeSessionReturn {
     isError: any;
 
     // Events data (server-side pagination)
-    events: DebugEvent[];
+    events: any[];
     allEventsCount: number;
     newEventsCount: number;
 

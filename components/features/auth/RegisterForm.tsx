@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/auth.service';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { SocialButtons } from './SocialButtons';
@@ -15,6 +15,14 @@ export function RegisterForm() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get('callbackUrl') || '/projects';
+
+    useEffect(() => {
+        if (authService.isAuthenticated()) {
+            router.replace(callbackUrl);
+        }
+    }, [callbackUrl, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,7 +31,7 @@ export function RegisterForm() {
 
         try {
             await authService.register({ name, email, password });
-            router.push('/projects');
+            router.push(callbackUrl);
         } catch (err) {
             const error = err as Error;
             setError(error.message || 'Registration failed. Please try again.');

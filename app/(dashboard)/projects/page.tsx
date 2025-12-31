@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Project, DebugSession } from '@/graphql/generated/graphql';
+import { Project, GetRecentSessionsQuery } from '@/graphql/generated/graphql';
 import { useProjects, useDashboardStats, useRecentSessions } from '@/hooks/useProjects';
 import Link from 'next/link';
 import { ProjectCard } from '@/components/features/projects/ProjectCard';
@@ -13,6 +13,13 @@ import { TrendChart } from '@/components/features/projects/TrendChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProjectCardSkeleton, ActivityItemSkeleton } from '@/components/features/projects/Skeletons';
 import { formatDistanceToNow } from 'date-fns';
+
+interface DashboardStat {
+    label: string;
+    value: string;
+    change: string;
+    changeType: 'positive' | 'negative';
+}
 
 export default function ProjectsPage() {
     const [search, setSearch] = useState('');
@@ -48,37 +55,37 @@ export default function ProjectsPage() {
         isLoading: loadingSessions
     } = useRecentSessions(activityPage, activityLimit);
 
-    const stats = useMemo(() => [
+    const stats: DashboardStat[] = useMemo(() => [
         {
             label: 'Total Events',
             value: statsData?.totalEvents.toLocaleString() || '0',
-            change: `${statsData?.totalEventsChange > 0 ? '+' : ''}${statsData?.totalEventsChange || 0}%`,
-            changeType: (statsData?.totalEventsChange || 0) >= 0 ? 'positive' : 'negative'
+            change: `${(statsData?.totalEventsChange ?? 0) > 0 ? '+' : ''}${statsData?.totalEventsChange || 0}%`,
+            changeType: ((statsData?.totalEventsChange || 0) >= 0 ? 'positive' : 'negative') as 'positive' | 'negative'
         },
         {
             label: 'Error Rate',
             value: `${statsData?.errorRate || 0}%`,
-            change: `${statsData?.errorRateChange > 0 ? '+' : ''}${statsData?.errorRateChange || 0}%`,
-            changeType: (statsData?.errorRateChange || 0) <= 0 ? 'positive' : 'negative' // Lower error rate is positive
+            change: `${(statsData?.errorRateChange ?? 0) > 0 ? '+' : ''}${statsData?.errorRateChange || 0}%`,
+            changeType: ((statsData?.errorRateChange || 0) <= 0 ? 'positive' : 'negative') as 'positive' | 'negative' // Lower error rate is positive
         },
         {
             label: 'Avg Latency',
             value: statsData?.avgLatency || '0ms',
-            change: `${statsData?.avgLatencyChange > 0 ? '+' : ''}${statsData?.avgLatencyChange || 0}ms`,
-            changeType: (statsData?.avgLatencyChange || 0) <= 0 ? 'positive' : 'negative' // Lower latency is positive
+            change: `${(statsData?.avgLatencyChange ?? 0) > 0 ? '+' : ''}${statsData?.avgLatencyChange || 0}ms`,
+            changeType: ((statsData?.avgLatencyChange || 0) <= 0 ? 'positive' : 'negative') as 'positive' | 'negative' // Lower latency is positive
         },
         {
             label: 'Active Sessions',
             value: statsData?.activeSessions.toString() || '0',
-            change: `${statsData?.activeSessionsChange > 0 ? '+' : ''}${statsData?.activeSessionsChange || 0}`,
-            changeType: (statsData?.activeSessionsChange || 0) >= 0 ? 'positive' : 'negative'
+            change: `${(statsData?.activeSessionsChange ?? 0) > 0 ? '+' : ''}${statsData?.activeSessionsChange || 0}`,
+            changeType: ((statsData?.activeSessionsChange || 0) >= 0 ? 'positive' : 'negative') as 'positive' | 'negative'
         },
     ], [statsData]);
 
     const trendData = statsData?.trend || [];
 
     const activities = useMemo(() => {
-        return rawSessions.map((session: DebugSession) => {
+        return rawSessions.map((session: GetRecentSessionsQuery['recentSessions']['items'][number]) => {
             const latestEvent = session.events?.[0];
             let method: string = 'GET';
             let type: 'success' | 'error' | 'warning' = 'success';
@@ -215,7 +222,7 @@ export default function ProjectsPage() {
                             </div>
                         ))
                     ) : (
-                        stats.map((stat, idx) => (
+                        stats.map((stat: DashboardStat, idx: number) => (
                             <div key={idx} className="flex flex-col gap-1 p-3 rounded-md border border-slate-800 bg-card-dark">
                                 <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wide">{stat.label}</span>
                                 <div className="flex items-center gap-2">

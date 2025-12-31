@@ -12,7 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { ActivityLog } from '@/components/features/projects/ActivityLog';
 import { ApiKeySection } from '@/components/features/projects/ApiKeySection';
 import { LiveIndicator } from '@/components/ui/live-indicator';
-import { ArrowLeft, Play, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Settings, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ActivityItemSkeleton } from '@/components/features/projects/Skeletons';
@@ -32,7 +32,8 @@ export default function ProjectDetailPage() {
         project,
         isLoading: loadingProject,
         isValidating: validatingProject,
-        isError: projectError
+        isError: projectError,
+        mutate: mutateProject
     } = useProject(projectId);
 
     // Realtime activity (combines SWR + WebSocket)
@@ -73,14 +74,15 @@ export default function ProjectDetailPage() {
 
     if (!isLoadingState && (error || !project)) {
         return (
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] space-y-4 text-center">
-                <div className="p-4 bg-error/10 border border-error/20 rounded-2xl text-error max-w-md">
-                    <p className="font-bold">Error Loading Project</p>
-                    <p className="text-sm opacity-80">{error || 'Project not found'}</p>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 max-w-md w-full">
+                    <AlertCircle className="size-12 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Error Loading Project</h2>
+                    <p className="text-sm opacity-80 mb-6">{error || 'Project not found'}</p>
+                    <Button variant="outline" onClick={() => router.push('/projects')} className="w-full">
+                        <ArrowLeft className="mr-2 size-4" /> Back to Projects
+                    </Button>
                 </div>
-                <Button variant="outline" onClick={() => router.push('/projects')}>
-                    <ArrowLeft className="mr-2 size-4" /> Go Back to Projects
-                </Button>
             </div>
         );
     }
@@ -168,7 +170,13 @@ export default function ProjectDetailPage() {
             </section>
 
             {/* API Key Section */}
-            {!showSkeleton && project && <ApiKeySection apiKey={project.apiKey} />}
+            {!showSkeleton && project && (
+                <ApiKeySection
+                    apiKey={project.apiKey}
+                    projectId={project.id}
+                    onKeyRegenerated={() => mutateProject()}
+                />
+            )}
 
             <section className="py-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

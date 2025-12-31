@@ -59,7 +59,10 @@ export const authService = {
 
         this.clearTokens();
         if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            // Preserve current path to redirect back after login
+            const currentPath = window.location.pathname;
+            const callbackUrl = encodeURIComponent(currentPath);
+            window.location.href = `/login?callbackUrl=${callbackUrl}`;
         }
     },
 
